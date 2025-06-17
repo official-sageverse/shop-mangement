@@ -1,50 +1,141 @@
-import { Payment } from '../types';
+import { Company, Transaction } from '../types';
 
-const PAYMENTS_KEY = 'company_payments';
+const COMPANIES_KEY = 'khatabook_companies';
+const TRANSACTIONS_KEY = 'khatabook_transactions';
 
 export const storageUtils = {
-  // Payments
-  getPayments(): Payment[] {
+  // Companies
+  getCompanies(): Company[] {
     try {
-      const data = localStorage.getItem(PAYMENTS_KEY);
+      const data = localStorage.getItem(COMPANIES_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error loading payments:', error);
+      console.error('Error loading companies:', error);
       return [];
     }
   },
 
-  savePayments(payments: Payment[]): void {
+  saveCompanies(companies: Company[]): void {
     try {
-      localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
+      localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies));
     } catch (error) {
-      console.error('Error saving payments:', error);
-      throw new Error('Failed to save payments');
+      console.error('Error saving companies:', error);
+      throw new Error('Failed to save companies');
     }
   },
 
-  addPayment(payment: Payment): void {
-    const payments = this.getPayments();
-    payments.push(payment);
-    this.savePayments(payments);
+  addCompany(company: Company): void {
+    const companies = this.getCompanies();
+    companies.push(company);
+    this.saveCompanies(companies);
   },
 
-  updatePayment(id: string, updates: Partial<Payment>): void {
-    const payments = this.getPayments();
-    const index = payments.findIndex(p => p.id === id);
+  updateCompany(id: string, updates: Partial<Company>): void {
+    const companies = this.getCompanies();
+    const index = companies.findIndex(c => c.id === id);
     if (index !== -1) {
-      payments[index] = { ...payments[index], ...updates };
-      this.savePayments(payments);
+      companies[index] = { ...companies[index], ...updates };
+      this.saveCompanies(companies);
     }
   },
 
-  deletePayment(id: string): void {
-    const payments = this.getPayments().filter(p => p.id !== id);
-    this.savePayments(payments);
+  deleteCompany(id: string): void {
+    const companies = this.getCompanies().filter(c => c.id !== id);
+    this.saveCompanies(companies);
+    // Also delete all transactions for this company
+    const transactions = this.getTransactions().filter(t => t.companyId !== id);
+    this.saveTransactions(transactions);
+  },
+
+  // Transactions
+  getTransactions(): Transaction[] {
+    try {
+      const data = localStorage.getItem(TRANSACTIONS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      return [];
+    }
+  },
+
+  saveTransactions(transactions: Transaction[]): void {
+    try {
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
+    } catch (error) {
+      console.error('Error saving transactions:', error);
+      throw new Error('Failed to save transactions');
+    }
+  },
+
+  addTransaction(transaction: Transaction): void {
+    const transactions = this.getTransactions();
+    transactions.push(transaction);
+    this.saveTransactions(transactions);
+    
+    // Update company totals
+    this.updateCompanyTotals(transaction.companyId);
+  },
+
+  updateTransaction(id: string, updates: Partial<Transaction>): void {
+    const transactions = this.getTransactions();
+    const index = transactions.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const oldTransaction = transactions[index];
+      transactions[index] = { ...transactions[index], ...updates };
+      this.saveTransactions(transactions);
+      
+      // Update company totals for both old and new company if changed
+      this.updateCompanyTotals(oldTransaction.companyId);
+      if (updates.companyId && updates.companyId !== oldTransaction.companyId) {
+        this.updateCompanyTotals(updates.companyId);
+      }
+    }
+  },
+
+  deleteTransaction(id: string): void {
+    const transactions = this.getTransactions();
+    const transaction = transactions.find(t => t.id === id);
+    if (transaction) {
+      const filteredTransactions = transactions.filter(t => t.id !== id);
+      this.saveTransactions(filteredTransactions);
+      this.updateCompanyTotals(transaction.companyId);
+    }
+  },
+
+  updateCompanyTotals(companyId: string): void {
+    const transactions = this.getTransactions().filter(t => t.companyId === companyId);
+    const companies = this.getCompanies();
+    const companyIndex = companies.findIndex(c => c.id === companyId);
+    
+    if (companyIndex !== -1) {
+      const totalBought = transactions
+        .filter(t => t.type === 'purchase')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const totalPaid = transactions
+        .filter(t => t.type === 'payment')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const remainingAmount = totalBought - totalPaid;
+      
+      const lastTransaction = transactions
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      
+      companies[companyIndex] = {
+        ...companies[companyIndex],
+        totalBought,
+        totalPaid,
+        remainingAmount,
+        lastTransactionDate: lastTransaction?.date
+      };
+      
+      this.saveCompanies(companies);
+    }
   },
 
   // Utility
   clearAllData(): void {
-    localStorage.removeItem(PAYMENTS_KEY);
+    localStorage.removeItem(COMPANIES_KEY);
+    localStorage.removeItem(TRANSACTIONS_KEY);
   }
 };

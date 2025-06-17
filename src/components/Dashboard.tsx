@@ -1,31 +1,36 @@
 import React from 'react';
 import { 
-  CreditCard, 
-  AlertTriangle, 
-  TrendingUp,
-  Building2,
-  Receipt,
-  IndianRupee
+  Building2, 
+  Receipt, 
+  CreditCard,
+  AlertTriangle,
+  Plus,
+  Phone,
+  MapPin,
+  Calendar
 } from 'lucide-react';
-import { Payment, CompanySummary } from '../types';
-import { calculateCompanySummaries, getTotalOutstanding, formatCurrency } from '../utils/calculations';
+import { Company, Transaction } from '../types';
+import { formatCurrency, formatDate, getTotalOutstanding, getTotalBought, getTotalPaid } from '../utils/calculations';
 
 interface DashboardProps {
-  payments: Payment[];
-  onCompanySelect: (company: string) => void;
+  companies: Company[];
+  transactions: Transaction[];
+  onCompanySelect: (company: Company) => void;
+  onAddCompany: () => void;
 }
 
-export default function Dashboard({ payments, onCompanySelect }: DashboardProps) {
-  const companySummaries = calculateCompanySummaries(payments);
-  const totalOutstanding = getTotalOutstanding(companySummaries);
-  const totalAmount = companySummaries.reduce((sum, c) => sum + c.totalAmount, 0);
-  const totalPaid = companySummaries.reduce((sum, c) => sum + c.totalPaid, 0);
+export default function Dashboard({ companies, transactions, onCompanySelect, onAddCompany }: DashboardProps) {
+  const totalOutstanding = getTotalOutstanding(companies);
+  const totalBought = getTotalBought(companies);
+  const totalPaid = getTotalPaid(companies);
   
-  const recentPayments = payments
+  const recentTransactions = transactions
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  const overdueCompanies = companySummaries.filter(c => c.totalRemaining > 0);
+  const overdueCompanies = companies
+    .filter(c => c.remainingAmount > 0)
+    .sort((a, b) => b.remainingAmount - a.remainingAmount);
 
   return (
     <div className="space-y-6">
@@ -48,11 +53,11 @@ export default function Dashboard({ payments, onCompanySelect }: DashboardProps)
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Bills</p>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</p>
+              <p className="text-sm font-medium text-gray-600">Total Bought</p>
+              <p className="text-2xl font-bold text-red-600">{formatCurrency(totalBought)}</p>
             </div>
-            <div className="p-3 rounded-lg bg-blue-100">
-              <Receipt className="w-6 h-6 text-blue-600" />
+            <div className="p-3 rounded-lg bg-red-100">
+              <Receipt className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
@@ -61,10 +66,10 @@ export default function Dashboard({ payments, onCompanySelect }: DashboardProps)
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Paid</p>
-              <p className="text-2xl font-bold text-emerald-600">{formatCurrency(totalPaid)}</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
             </div>
-            <div className="p-3 rounded-lg bg-emerald-100">
-              <CreditCard className="w-6 h-6 text-emerald-600" />
+            <div className="p-3 rounded-lg bg-green-100">
+              <CreditCard className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -72,54 +77,110 @@ export default function Dashboard({ payments, onCompanySelect }: DashboardProps)
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Companies</p>
-              <p className="text-2xl font-bold text-purple-600">{companySummaries.length}</p>
+              <p className="text-sm font-medium text-gray-600">Total Companies</p>
+              <p className="text-2xl font-bold text-blue-600">{companies.length}</p>
             </div>
-            <div className="p-3 rounded-lg bg-purple-100">
-              <Building2 className="w-6 h-6 text-purple-600" />
+            <div className="p-3 rounded-lg bg-blue-100">
+              <Building2 className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Company Summaries */}
+      {/* Companies Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Building2 className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Company Overview</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Companies</h3>
+          </div>
+          <button
+            onClick={onAddCompany}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Add Company
+          </button>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {companySummaries.map((summary) => (
-            <div 
-              key={summary.company} 
-              className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-              onClick={() => onCompanySelect(summary.company)}
+
+        {companies.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {companies.map((company) => (
+              <div 
+                key={company.id} 
+                className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group"
+                onClick={() => onCompanySelect(company)}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {company.name}
+                    </h4>
+                    {company.phone && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <Phone className="w-3 h-3" />
+                        {company.phone}
+                      </div>
+                    )}
+                    {company.address && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{company.address}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    company.remainingAmount > 0 
+                      ? 'bg-red-100 text-red-700' 
+                      : company.remainingAmount < 0
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {company.remainingAmount > 0 ? 'You owe' : company.remainingAmount < 0 ? 'They owe' : 'Settled'}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-600">Bought</p>
+                    <p className="font-medium text-red-600">{formatCurrency(company.totalBought)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Paid</p>
+                    <p className="font-medium text-green-600">{formatCurrency(company.totalPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Balance</p>
+                    <p className={`font-medium ${
+                      company.remainingAmount > 0 ? 'text-red-600' : 
+                      company.remainingAmount < 0 ? 'text-green-600' : 'text-gray-600'
+                    }`}>
+                      {formatCurrency(Math.abs(company.remainingAmount))}
+                    </p>
+                  </div>
+                </div>
+
+                {company.lastTransactionDate && (
+                  <div className="flex items-center gap-1 mt-3 text-xs text-gray-500">
+                    <Calendar className="w-3 h-3" />
+                    Last transaction: {formatDate(company.lastTransactionDate)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 mb-4">No companies added yet</p>
+            <button
+              onClick={onAddCompany}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-gray-900">{summary.company}</h4>
-                <span className="text-xs text-gray-500">{summary.totalBills} bills</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-600">Total</p>
-                  <p className="font-medium text-gray-900">{formatCurrency(summary.totalAmount)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Paid</p>
-                  <p className="font-medium text-emerald-600">{formatCurrency(summary.totalPaid)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Remaining</p>
-                  <p className={`font-medium ${summary.totalRemaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatCurrency(summary.totalRemaining)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {companySummaries.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No companies found. Add your first payment to get started.</p>
+              <Plus className="w-4 h-4" />
+              Add Your First Company
+            </button>
+          </div>
         )}
       </div>
 
@@ -131,21 +192,21 @@ export default function Dashboard({ payments, onCompanySelect }: DashboardProps)
             <h3 className="text-lg font-semibold text-gray-900">Outstanding Payments</h3>
           </div>
           <div className="space-y-3">
-            {overdueCompanies.slice(0, 5).map((summary) => (
+            {overdueCompanies.slice(0, 5).map((company) => (
               <div 
-                key={summary.company} 
+                key={company.id} 
                 className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100 cursor-pointer hover:bg-red-100 transition-colors"
-                onClick={() => onCompanySelect(summary.company)}
+                onClick={() => onCompanySelect(company)}
               >
                 <div>
-                  <p className="font-medium text-gray-900">{summary.company}</p>
+                  <p className="font-medium text-gray-900">{company.name}</p>
                   <p className="text-sm text-gray-600">
-                    Total: {formatCurrency(summary.totalAmount)} | 
-                    Paid: {formatCurrency(summary.totalPaid)}
+                    Bought: {formatCurrency(company.totalBought)} | 
+                    Paid: {formatCurrency(company.totalPaid)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-red-600">{formatCurrency(summary.totalRemaining)}</p>
+                  <p className="font-bold text-red-600">{formatCurrency(company.remainingAmount)}</p>
                   <p className="text-xs text-gray-500">Outstanding</p>
                 </div>
               </div>
@@ -154,43 +215,50 @@ export default function Dashboard({ payments, onCompanySelect }: DashboardProps)
         </div>
       )}
 
-      {/* Recent Payments */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-emerald-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-        </div>
-        <div className="space-y-3">
-          {recentPayments.length > 0 ? (
-            recentPayments.map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{payment.company}</p>
-                  <p className="text-sm text-gray-600">{payment.billDescription}</p>
-                  <p className="text-xs text-gray-500">
-                    {payment.paymentMethod.replace('_', ' ').toUpperCase()} • {payment.referenceNumber}
-                  </p>
+      {/* Recent Transactions */}
+      {recentTransactions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Receipt className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+          </div>
+          <div className="space-y-3">
+            {recentTransactions.map((transaction) => (
+              <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    transaction.type === 'purchase' ? 'bg-red-100' : 'bg-green-100'
+                  }`}>
+                    {transaction.type === 'purchase' ? (
+                      <Receipt className="w-4 h-4 text-red-600" />
+                    ) : (
+                      <CreditCard className="w-4 h-4 text-green-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{transaction.companyName}</p>
+                    <p className="text-sm text-gray-600">{transaction.description}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(transaction.date)}
+                      {transaction.referenceNumber && ` • ${transaction.referenceNumber}`}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-emerald-600">
-                    {formatCurrency(payment.paidAmount)}
+                  <p className={`font-semibold ${
+                    transaction.type === 'purchase' ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {transaction.type === 'purchase' ? '-' : '+'}{formatCurrency(transaction.amount)}
                   </p>
-                  {payment.remainingAmount > 0 && (
-                    <p className="text-xs text-red-500">
-                      {formatCurrency(payment.remainingAmount)} remaining
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    {new Date(payment.paymentDate).toLocaleDateString('en-IN')}
+                  <p className="text-xs text-gray-500 capitalize">
+                    {transaction.type}
                   </p>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-gray-500 text-center py-4">No recent transactions</p>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
