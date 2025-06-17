@@ -19,8 +19,13 @@ export interface Transaction {
   amount: number;
   date: string;
   paymentMethod?: 'cash' | 'card' | 'bank_transfer' | 'upi' | 'check' | 'other';
-  referenceNumber?: string;
+  paidBy?: string; // User who made the transaction
   createdAt: string;
+}
+
+export interface UserSettings {
+  user1Name: string;
+  user2Name: string;
 }
 
 export interface FilterOptions {
@@ -30,4 +35,5 @@ export interface FilterOptions {
   searchTerm?: string;
   transactionType?: 'purchase' | 'payment';
   paymentMethod?: string;
+  paidBy?: string;
 }

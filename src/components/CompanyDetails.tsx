@@ -9,7 +9,8 @@ import {
   Calendar,
   Edit,
   Trash2,
-  Download
+  Download,
+  User
 } from 'lucide-react';
 import { Company, Transaction } from '../types';
 import { formatCurrency, formatDate } from '../utils/calculations';
@@ -33,6 +34,7 @@ export default function CompanyDetails({
   onRefresh 
 }: CompanyDetailsProps) {
   const [filter, setFilter] = useState<'all' | 'purchase' | 'payment'>('all');
+  const settings = storageUtils.getSettings();
 
   const companyTransactions = transactions
     .filter(t => t.companyId === company.id)
@@ -54,7 +56,7 @@ export default function CompanyDetails({
   };
 
   const exportTransactions = () => {
-    const headers = ['Date', 'Type', 'Description', 'Amount', 'Payment Method', 'Reference'];
+    const headers = ['Date', 'Type', 'Description', 'Amount', 'Payment Method', 'Paid By'];
     const csvData = [
       headers.join(','),
       ...companyTransactions.map(t => [
@@ -63,7 +65,7 @@ export default function CompanyDetails({
         `"${t.description}"`,
         t.amount,
         t.paymentMethod || '',
-        `"${t.referenceNumber || ''}"`
+        `"${t.paidBy || ''}"`
       ].join(','))
     ].join('\n');
 
@@ -256,8 +258,11 @@ export default function CompanyDetails({
                       {transaction.paymentMethod && (
                         <span className="capitalize">{transaction.paymentMethod.replace('_', ' ')}</span>
                       )}
-                      {transaction.referenceNumber && (
-                        <span>Ref: {transaction.referenceNumber}</span>
+                      {transaction.paidBy && (
+                        <div className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          <span>{transaction.paidBy}</span>
+                        </div>
                       )}
                     </div>
                   </div>

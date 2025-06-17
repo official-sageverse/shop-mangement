@@ -7,10 +7,12 @@ import {
   Plus,
   Phone,
   MapPin,
-  Calendar
+  Calendar,
+  User
 } from 'lucide-react';
 import { Company, Transaction } from '../types';
 import { formatCurrency, formatDate, getTotalOutstanding, getTotalBought, getTotalPaid } from '../utils/calculations';
+import { storageUtils } from '../utils/storage';
 
 interface DashboardProps {
   companies: Company[];
@@ -23,6 +25,7 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
   const totalOutstanding = getTotalOutstanding(companies);
   const totalBought = getTotalBought(companies);
   const totalPaid = getTotalPaid(companies);
+  const settings = storageUtils.getSettings();
   
   const recentTransactions = transactions
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -150,7 +153,7 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
                     <p className="font-medium text-green-600">{formatCurrency(company.totalPaid)}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Balance</p>
+                    <p className="text-gray-600">Remaining to Pay</p>
                     <p className={`font-medium ${
                       company.remainingAmount > 0 ? 'text-red-600' : 
                       company.remainingAmount < 0 ? 'text-green-600' : 'text-gray-600'
@@ -207,7 +210,7 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-red-600">{formatCurrency(company.remainingAmount)}</p>
-                  <p className="text-xs text-gray-500">Outstanding</p>
+                  <p className="text-xs text-gray-500">Remaining to Pay</p>
                 </div>
               </div>
             ))}
@@ -238,10 +241,18 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
                   <div>
                     <p className="font-medium text-gray-900">{transaction.companyName}</p>
                     <p className="text-sm text-gray-600">{transaction.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatDate(transaction.date)}
-                      {transaction.referenceNumber && ` • ${transaction.referenceNumber}`}
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>{formatDate(transaction.date)}</span>
+                      {transaction.paidBy && (
+                        <>
+                          <span>•</span>
+                          <div className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            <span>{transaction.paidBy}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">

@@ -1,9 +1,30 @@
-import { Company, Transaction } from '../types';
+import { Company, Transaction, UserSettings } from '../types';
 
 const COMPANIES_KEY = 'khatabook_companies';
 const TRANSACTIONS_KEY = 'khatabook_transactions';
+const SETTINGS_KEY = 'khatabook_settings';
 
 export const storageUtils = {
+  // Settings
+  getSettings(): UserSettings {
+    try {
+      const data = localStorage.getItem(SETTINGS_KEY);
+      return data ? JSON.parse(data) : { user1Name: 'User 1', user2Name: 'User 2' };
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      return { user1Name: 'User 1', user2Name: 'User 2' };
+    }
+  },
+
+  saveSettings(settings: UserSettings): void {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      throw new Error('Failed to save settings');
+    }
+  },
+
   // Companies
   getCompanies(): Company[] {
     try {
@@ -137,5 +158,6 @@ export const storageUtils = {
   clearAllData(): void {
     localStorage.removeItem(COMPANIES_KEY);
     localStorage.removeItem(TRANSACTIONS_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
   }
 };

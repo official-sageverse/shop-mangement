@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Receipt, CreditCard } from 'lucide-react';
+import { X, Receipt, CreditCard, User } from 'lucide-react';
 import { Transaction, Company } from '../types';
 import { storageUtils } from '../utils/storage';
 import { formatCurrency } from '../utils/calculations';
@@ -27,13 +27,14 @@ export default function TransactionForm({
   transactionType = 'purchase' 
 }: TransactionFormProps) {
   const [loading, setLoading] = useState(false);
+  const [settings] = useState(storageUtils.getSettings());
   const [formData, setFormData] = useState({
     type: transactionType,
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
     paymentMethod: 'cash' as Transaction['paymentMethod'],
-    referenceNumber: ''
+    paidBy: settings.user1Name
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -56,13 +57,8 @@ export default function TransactionForm({
       newErrors.date = 'Date is required';
     }
 
-    if (formData.type === 'payment') {
-      if (!formData.paymentMethod) {
-        newErrors.paymentMethod = 'Payment method is required';
-      }
-      if (!formData.referenceNumber.trim()) {
-        newErrors.referenceNumber = 'Reference number is required for payments';
-      }
+    if (!formData.paidBy) {
+      newErrors.paidBy = 'Please select who made this transaction';
     }
 
     setErrors(newErrors);
@@ -84,8 +80,8 @@ export default function TransactionForm({
         description: formData.description.trim(),
         amount: Number(formData.amount),
         date: formData.date,
-        paymentMethod: formData.type === 'payment' ? formData.paymentMethod : undefined,
-        referenceNumber: formData.type === 'payment' ? formData.referenceNumber.trim() : undefined,
+        paymentMethod: formData.paymentMethod,
+        paidBy: formData.paidBy,
         createdAt: new Date().toISOString()
       };
 
@@ -187,7 +183,7 @@ export default function TransactionForm({
                 <p className="font-medium text-green-600">{formatCurrency(company.totalPaid)}</p>
               </div>
               <div>
-                <p className="text-gray-600">Balance</p>
+                <p className="text-gray-600">Remaining to Pay</p>
                 <p className={`font-medium ${company.remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {formatCurrency(company.remainingAmount)}
                 </p>
@@ -247,47 +243,44 @@ export default function TransactionForm({
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
           </div>
 
-          {formData.type === 'payment' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Method *
-                </label>
-                <select
-                  name="paymentMethod"
-                  value={formData.paymentMethod}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.paymentMethod ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  {paymentMethods.map(method => (
-                    <option key={method.value} value={method.value}>
-                      {method.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.paymentMethod && <p className="text-red-500 text-xs mt-1">{errors.paymentMethod}</p>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                {formData.type === 'purchase' ? 'Purchased by' : 'Paid by'} *
               </div>
+            </label>
+            <select
+              name="paidBy"
+              value={formData.paidBy}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.paidBy ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value={settings.user1Name}>{settings.user1Name}</option>
+              <option value={settings.user2Name}>{settings.user2Name}</option>
+            </select>
+            {errors.paidBy && <p className="text-red-500 text-xs mt-1">{errors.paidBy}</p>}
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reference Number *
-                </label>
-                <input
-                  type="text"
-                  name="referenceNumber"
-                  value={formData.referenceNumber}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.referenceNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Transaction ID, Check number, etc."
-                />
-                {errors.referenceNumber && <p className="text-red-500 text-xs mt-1">{errors.referenceNumber}</p>}
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Payment Method
+            </label>
+            <select
+              name="paymentMethod"
+              value={formData.paymentMethod}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {paymentMethods.map(method => (
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="flex gap-3 pt-4">
             <button

@@ -4,12 +4,14 @@ import {
   Receipt, 
   Menu, 
   X,
-  BookOpen
+  BookOpen,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import CompanyDetails from './components/CompanyDetails';
 import CompanyForm from './components/CompanyForm';
 import TransactionForm from './components/TransactionForm';
+import Settings from './components/Settings';
 import { Company, Transaction } from './types';
 import { storageUtils } from './utils/storage';
 
@@ -23,6 +25,7 @@ function App() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [transactionType, setTransactionType] = useState<'purchase' | 'payment'>('purchase');
   const [editingCompany, setEditingCompany] = useState<Company | undefined>();
 
@@ -85,6 +88,10 @@ function App() {
         setSelectedCompany(updatedCompany);
       }
     }
+  };
+
+  const handleSettingsUpdated = () => {
+    refreshData();
   };
 
   const renderContent = () => {
@@ -153,8 +160,15 @@ function App() {
               </button>
             </nav>
 
-            {/* Add Company Button */}
-            <div className="hidden md:block">
+            {/* Desktop Action Buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+              >
+                <SettingsIcon className="w-4 h-4" />
+                Settings
+              </button>
               <button
                 onClick={handleAddCompany}
                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
@@ -193,6 +207,16 @@ function App() {
                 </button>
                 <button
                   onClick={() => {
+                    setShowSettings(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+                >
+                  <SettingsIcon className="w-5 h-5" />
+                  Settings
+                </button>
+                <button
+                  onClick={() => {
                     handleAddCompany();
                     setIsMobileMenuOpen(false);
                   }}
@@ -228,6 +252,14 @@ function App() {
           onClose={() => setShowTransactionForm(false)}
           company={selectedCompany}
           transactionType={transactionType}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <Settings
+          onClose={() => setShowSettings(false)}
+          onSettingsUpdated={handleSettingsUpdated}
         />
       )}
     </div>
