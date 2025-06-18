@@ -153,12 +153,12 @@ export default function CompanyDetails({
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
             <div className="flex items-center gap-2 mb-2">
-              <Receipt className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-red-700">Total Bought</span>
+              <Receipt className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-700">Total Bought</span>
             </div>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(company.totalBought)}</p>
+            <p className="text-2xl font-bold text-blue-600">{formatCurrency(company.totalBought)}</p>
           </div>
 
           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
@@ -169,12 +169,20 @@ export default function CompanyDetails({
             <p className="text-2xl font-bold text-green-600">{formatCurrency(company.totalPaid)}</p>
           </div>
 
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <div className={`p-4 rounded-lg border ${
+            company.remainingAmount > 0 
+              ? 'bg-red-50 border-red-100' 
+              : 'bg-gray-50 border-gray-100'
+          }`}>
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-700">Transactions</span>
+              <Calendar className={`w-5 h-5 ${company.remainingAmount > 0 ? 'text-red-600' : 'text-gray-600'}`} />
+              <span className={`font-medium ${company.remainingAmount > 0 ? 'text-red-700' : 'text-gray-700'}`}>
+                Remaining to Pay
+              </span>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{companyTransactions.length}</p>
+            <p className={`text-2xl font-bold ${company.remainingAmount > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+              {formatCurrency(Math.abs(company.remainingAmount))}
+            </p>
           </div>
         </div>
 
@@ -182,7 +190,7 @@ export default function CompanyDetails({
         <div className="flex flex-wrap gap-3 mt-6">
           <button
             onClick={() => onAddTransaction('purchase')}
-            className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <Receipt className="w-4 h-4" />
             Add Purchase
@@ -221,7 +229,7 @@ export default function CompanyDetails({
             <button
               onClick={() => setFilter('purchase')}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'purchase' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
+                filter === 'purchase' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               Purchases
@@ -243,10 +251,10 @@ export default function CompanyDetails({
               <div key={transaction.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-lg ${
-                    transaction.type === 'purchase' ? 'bg-red-100' : 'bg-green-100'
+                    transaction.type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'
                   }`}>
                     {transaction.type === 'purchase' ? (
-                      <Receipt className="w-5 h-5 text-red-600" />
+                      <Receipt className="w-5 h-5 text-blue-600" />
                     ) : (
                       <CreditCard className="w-5 h-5 text-green-600" />
                     )}
@@ -270,9 +278,9 @@ export default function CompanyDetails({
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className={`text-lg font-semibold ${
-                      transaction.type === 'purchase' ? 'text-red-600' : 'text-green-600'
+                      transaction.type === 'purchase' ? 'text-blue-600' : 'text-green-600'
                     }`}>
-                      {transaction.type === 'purchase' ? '-' : '+'}{formatCurrency(transaction.amount)}
+                      {transaction.type === 'purchase' ? '' : '+'}{formatCurrency(transaction.amount)}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">{transaction.type}</p>
                   </div>
@@ -294,7 +302,7 @@ export default function CompanyDetails({
             <div className="flex justify-center gap-3">
               <button
                 onClick={() => onAddTransaction('purchase')}
-                className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 <Receipt className="w-4 h-4" />
                 Add Purchase

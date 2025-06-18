@@ -42,7 +42,7 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Outstanding</p>
+              <p className="text-sm font-medium text-gray-600">Remaining to Pay</p>
               <p className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {formatCurrency(totalOutstanding)}
               </p>
@@ -57,10 +57,10 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Bought</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(totalBought)}</p>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalBought)}</p>
             </div>
-            <div className="p-3 rounded-lg bg-red-100">
-              <Receipt className="w-6 h-6 text-red-600" />
+            <div className="p-3 rounded-lg bg-blue-100">
+              <Receipt className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
@@ -81,10 +81,10 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Companies</p>
-              <p className="text-2xl font-bold text-blue-600">{companies.length}</p>
+              <p className="text-2xl font-bold text-purple-600">{companies.length}</p>
             </div>
-            <div className="p-3 rounded-lg bg-blue-100">
-              <Building2 className="w-6 h-6 text-blue-600" />
+            <div className="p-3 rounded-lg bg-purple-100">
+              <Building2 className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div>
                     <p className="text-gray-600">Bought</p>
-                    <p className="font-medium text-red-600">{formatCurrency(company.totalBought)}</p>
+                    <p className="font-medium text-blue-600">{formatCurrency(company.totalBought)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Paid</p>
@@ -230,10 +230,10 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
               <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${
-                    transaction.type === 'purchase' ? 'bg-red-100' : 'bg-green-100'
+                    transaction.type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'
                   }`}>
                     {transaction.type === 'purchase' ? (
-                      <Receipt className="w-4 h-4 text-red-600" />
+                      <Receipt className="w-4 h-4 text-blue-600" />
                     ) : (
                       <CreditCard className="w-4 h-4 text-green-600" />
                     )}
@@ -257,9 +257,9 @@ export default function Dashboard({ companies, transactions, onCompanySelect, on
                 </div>
                 <div className="text-right">
                   <p className={`font-semibold ${
-                    transaction.type === 'purchase' ? 'text-red-600' : 'text-green-600'
+                    transaction.type === 'purchase' ? 'text-blue-600' : 'text-green-600'
                   }`}>
-                    {transaction.type === 'purchase' ? '-' : '+'}{formatCurrency(transaction.amount)}
+                    {transaction.type === 'purchase' ? '' : '+'}{formatCurrency(transaction.amount)}
                   </p>
                   <p className="text-xs text-gray-500 capitalize">
                     {transaction.type}

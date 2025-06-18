@@ -113,9 +113,9 @@ export default function TransactionForm({
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${formData.type === 'purchase' ? 'bg-red-100' : 'bg-green-100'}`}>
+            <div className={`p-2 rounded-lg ${formData.type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'}`}>
               {formData.type === 'purchase' ? (
-                <Receipt className={`w-5 h-5 ${formData.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`} />
+                <Receipt className={`w-5 h-5 ${formData.type === 'purchase' ? 'text-blue-600' : 'text-green-600'}`} />
               ) : (
                 <CreditCard className="w-5 h-5 text-green-600" />
               )}
@@ -147,7 +147,7 @@ export default function TransactionForm({
                 onClick={() => handleTypeChange('purchase')}
                 className={`p-3 rounded-lg border-2 transition-colors ${
                   formData.type === 'purchase'
-                    ? 'border-red-500 bg-red-50 text-red-700'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -176,7 +176,7 @@ export default function TransactionForm({
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-gray-600">Total Bought</p>
-                <p className="font-medium text-red-600">{formatCurrency(company.totalBought)}</p>
+                <p className="font-medium text-blue-600">{formatCurrency(company.totalBought)}</p>
               </div>
               <div>
                 <p className="text-gray-600">Total Paid</p>
@@ -295,7 +295,7 @@ export default function TransactionForm({
               disabled={loading}
               className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 formData.type === 'purchase' 
-                  ? 'bg-red-600 hover:bg-red-700' 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
                   : 'bg-green-600 hover:bg-green-700'
               }`}
             >
