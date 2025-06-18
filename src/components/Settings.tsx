@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Settings as SettingsIcon, User } from 'lucide-react';
 import { UserSettings } from '../types';
-import { storageUtils } from '../utils/storage';
+import { supabaseUtils } from '../utils/supabase';
 
 interface SettingsProps {
   onClose: () => void;
@@ -10,8 +10,20 @@ interface SettingsProps {
 
 export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) {
   const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<UserSettings>(storageUtils.getSettings());
+  const [settings, setSettings] = useState<UserSettings>({ user1Name: 'User 1', user2Name: 'User 2' });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userSettings = await supabaseUtils.getSettings();
+        setSettings(userSettings);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -44,11 +56,12 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
         user2Name: settings.user2Name.trim()
       };
       
-      storageUtils.saveSettings(updatedSettings);
+      await supabaseUtils.saveSettings(updatedSettings);
       onSettingsUpdated();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
+      setErrors({ general: 'Failed to save settings. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -67,8 +80,8 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <SettingsIcon className="w-5 h-5 text-blue-600" />
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <SettingsIcon className="w-5 h-5 text-orange-600" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
           </div>
@@ -85,6 +98,12 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
             Set up the names of the two users who will be making transactions. This helps track who made each purchase or payment.
           </div>
 
+          {errors.general && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{errors.general}</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <div className="flex items-center gap-2">
@@ -97,7 +116,7 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
               name="user1Name"
               value={settings.user1Name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.user1Name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter first user name"
@@ -117,7 +136,7 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
               name="user2Name"
               value={settings.user2Name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.user2Name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter second user name"
@@ -125,8 +144,8 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
             {errors.user2Name && <p className="text-red-500 text-xs mt-1">{errors.user2Name}</p>}
           </div>
 
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-800">
+          <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <p className="text-sm text-orange-800">
               <strong>Note:</strong> These names will appear in transaction forms to help you track who made each purchase or payment.
             </p>
           </div>
@@ -142,7 +161,7 @@ export default function Settings({ onClose, onSettingsUpdated }: SettingsProps) 
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save Settings'}
             </button>

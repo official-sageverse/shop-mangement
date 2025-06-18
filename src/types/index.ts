@@ -8,6 +8,7 @@ export interface Company {
   remainingAmount: number;
   createdAt: string;
   lastTransactionDate?: string;
+  userId: string;
 }
 
 export interface Transaction {
@@ -19,8 +20,9 @@ export interface Transaction {
   amount: number;
   date: string;
   paymentMethod?: 'cash' | 'card' | 'bank_transfer' | 'upi' | 'check' | 'other';
-  paidBy?: string; // User who made the transaction
+  paidBy?: string;
   createdAt: string;
+  userId: string;
 }
 
 export interface UserSettings {
@@ -36,4 +38,9 @@ export interface FilterOptions {
   transactionType?: 'purchase' | 'payment';
   paymentMethod?: string;
   paidBy?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
 }

@@ -4,20 +4,25 @@ import {
   Receipt, 
   Menu, 
   X,
-  BookOpen,
-  Settings as SettingsIcon
+  Cake,
+  Settings as SettingsIcon,
+  LogOut
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import CompanyDetails from './components/CompanyDetails';
 import CompanyForm from './components/CompanyForm';
 import TransactionForm from './components/TransactionForm';
 import Settings from './components/Settings';
+import Login from './components/Login';
 import { Company, Transaction } from './types';
-import { storageUtils } from './utils/storage';
+import { supabaseUtils } from './utils/supabase';
+import { supabase } from './lib/supabase';
 
 type ActiveView = 'dashboard' | 'company-details';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -30,13 +35,67 @@ function App() {
   const [editingCompany, setEditingCompany] = useState<Company | undefined>();
 
   useEffect(() => {
-    refreshData();
-    document.title = 'KhataBook - Business Account Management';
+    checkAuth();
+    document.title = 'Shivam Bakers - Business Account Management';
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setIsAuthenticated(true);
+        refreshData();
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setCompanies([]);
+        setTransactions([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const refreshData = () => {
-    setCompanies(storageUtils.getCompanies());
-    setTransactions(storageUtils.getTransactions());
+  const checkAuth = async () => {
+    try {
+      const user = await supabaseUtils.getCurrentUser();
+      if (user) {
+        setIsAuthenticated(true);
+        await refreshData();
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      const [companiesData, transactionsData] = await Promise.all([
+        supabaseUtils.getCompanies(),
+        supabaseUtils.getTransactions()
+      ]);
+      setCompanies(companiesData);
+      setTransactions(transactionsData);
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    }
+  };
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    refreshData();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabaseUtils.signOut();
+      setIsAuthenticated(false);
+      setCompanies([]);
+      setTransactions([]);
+      setSelectedCompany(null);
+      setActiveView('dashboard');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleCompanySelect = (company: Company) => {
@@ -66,24 +125,24 @@ function App() {
     setShowTransactionForm(true);
   };
 
-  const handleCompanyAdded = () => {
-    refreshData();
+  const handleCompanyAdded = async () => {
+    await refreshData();
     setShowCompanyForm(false);
     // If we were editing, refresh the selected company
     if (editingCompany && selectedCompany) {
-      const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+      const updatedCompany = companies.find(c => c.id === selectedCompany.id);
       if (updatedCompany) {
         setSelectedCompany(updatedCompany);
       }
     }
   };
 
-  const handleTransactionAdded = () => {
-    refreshData();
+  const handleTransactionAdded = async () => {
+    await refreshData();
     setShowTransactionForm(false);
     // Refresh selected company data
     if (selectedCompany) {
-      const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+      const updatedCompany = companies.find(c => c.id === selectedCompany.id);
       if (updatedCompany) {
         setSelectedCompany(updatedCompany);
       }
@@ -91,7 +150,7 @@ function App() {
   };
 
   const handleSettingsUpdated = () => {
-    refreshData();
+    // Settings don't affect companies/transactions, so no need to refresh
   };
 
   const renderContent = () => {
@@ -113,9 +172,9 @@ function App() {
             onBack={handleBackToDashboard}
             onAddTransaction={handleAddTransaction}
             onEditCompany={handleEditCompany}
-            onRefresh={() => {
-              refreshData();
-              const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+            onRefresh={async () => {
+              await refreshData();
+              const updatedCompany = companies.find(c => c.id === selectedCompany.id);
               if (updatedCompany) {
                 setSelectedCompany(updatedCompany);
               } else {
@@ -129,6 +188,23 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
+            <Cake className="w-8 h-8 text-orange-600 animate-pulse" />
+          </div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -136,11 +212,11 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className="p-2 bg-orange-600 rounded-lg">
+                <Cake className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">KhataBook</h1>
+                <h1 className="text-xl font-bold text-gray-900">Shivam Bakers</h1>
                 <p className="text-xs text-gray-600">Business Account Management</p>
               </div>
             </div>
@@ -151,7 +227,7 @@ function App() {
                 onClick={handleBackToDashboard}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeView === 'dashboard'
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-orange-100 text-orange-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
@@ -171,10 +247,17 @@ function App() {
               </button>
               <button
                 onClick={handleAddCompany}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+                className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium shadow-sm"
               >
                 <Receipt className="w-4 h-4" />
                 Add Company
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
               </button>
             </div>
 
@@ -198,7 +281,7 @@ function App() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
                     activeView === 'dashboard'
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-orange-100 text-orange-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
@@ -220,10 +303,20 @@ function App() {
                     handleAddCompany();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
                 >
                   <Receipt className="w-5 h-5" />
                   Add Company
+                </button>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
                 </button>
               </nav>
             </div>

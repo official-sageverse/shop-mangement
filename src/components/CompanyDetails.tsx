@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Company, Transaction } from '../types';
 import { formatCurrency, formatDate } from '../utils/calculations';
-import { storageUtils } from '../utils/storage';
+import { supabaseUtils } from '../utils/supabase';
 
 interface CompanyDetailsProps {
   company: Company;
@@ -34,24 +34,33 @@ export default function CompanyDetails({
   onRefresh 
 }: CompanyDetailsProps) {
   const [filter, setFilter] = useState<'all' | 'purchase' | 'payment'>('all');
-  const settings = storageUtils.getSettings();
 
   const companyTransactions = transactions
     .filter(t => t.companyId === company.id)
     .filter(t => filter === 'all' || t.type === filter)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
-      storageUtils.deleteTransaction(id);
-      onRefresh();
+      try {
+        await supabaseUtils.deleteTransaction(id);
+        onRefresh();
+      } catch (error) {
+        console.error('Failed to delete transaction:', error);
+        alert('Failed to delete transaction. Please try again.');
+      }
     }
   };
 
-  const handleDeleteCompany = () => {
+  const handleDeleteCompany = async () => {
     if (window.confirm(`Are you sure you want to delete ${company.name} and all its transactions?`)) {
-      storageUtils.deleteCompany(company.id);
-      onBack();
+      try {
+        await supabaseUtils.deleteCompany(company.id);
+        onBack();
+      } catch (error) {
+        console.error('Failed to delete company:', error);
+        alert('Failed to delete company. Please try again.');
+      }
     }
   };
 
@@ -153,12 +162,12 @@ export default function CompanyDetails({
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
             <div className="flex items-center gap-2 mb-2">
-              <Receipt className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-700">Total Bought</span>
+              <Receipt className="w-5 h-5 text-orange-600" />
+              <span className="font-medium text-orange-700">Total Bought</span>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{formatCurrency(company.totalBought)}</p>
+            <p className="text-2xl font-bold text-orange-600">{formatCurrency(company.totalBought)}</p>
           </div>
 
           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
@@ -190,7 +199,7 @@ export default function CompanyDetails({
         <div className="flex flex-wrap gap-3 mt-6">
           <button
             onClick={() => onAddTransaction('purchase')}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium"
           >
             <Receipt className="w-4 h-4" />
             Add Purchase
@@ -221,7 +230,7 @@ export default function CompanyDetails({
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                filter === 'all' ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               All
@@ -229,7 +238,7 @@ export default function CompanyDetails({
             <button
               onClick={() => setFilter('purchase')}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'purchase' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                filter === 'purchase' ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               Purchases
@@ -251,10 +260,10 @@ export default function CompanyDetails({
               <div key={transaction.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-lg ${
-                    transaction.type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'
+                    transaction.type === 'purchase' ? 'bg-orange-100' : 'bg-green-100'
                   }`}>
                     {transaction.type === 'purchase' ? (
-                      <Receipt className="w-5 h-5 text-blue-600" />
+                      <Receipt className="w-5 h-5 text-orange-600" />
                     ) : (
                       <CreditCard className="w-5 h-5 text-green-600" />
                     )}
@@ -278,7 +287,7 @@ export default function CompanyDetails({
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className={`text-lg font-semibold ${
-                      transaction.type === 'purchase' ? 'text-blue-600' : 'text-green-600'
+                      transaction.type === 'purchase' ? 'text-orange-600' : 'text-green-600'
                     }`}>
                       {transaction.type === 'purchase' ? '' : '+'}{formatCurrency(transaction.amount)}
                     </p>
@@ -302,7 +311,7 @@ export default function CompanyDetails({
             <div className="flex justify-center gap-3">
               <button
                 onClick={() => onAddTransaction('purchase')}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium"
               >
                 <Receipt className="w-4 h-4" />
                 Add Purchase

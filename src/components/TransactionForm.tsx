@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Receipt, CreditCard, User } from 'lucide-react';
 import { Transaction, Company } from '../types';
-import { storageUtils } from '../utils/storage';
+import { supabaseUtils } from '../utils/supabase';
 import { formatCurrency } from '../utils/calculations';
 
 interface TransactionFormProps {
@@ -27,7 +27,7 @@ export default function TransactionForm({
   transactionType = 'purchase' 
 }: TransactionFormProps) {
   const [loading, setLoading] = useState(false);
-  const [settings] = useState(storageUtils.getSettings());
+  const [settings, setSettings] = useState({ user1Name: 'User 1', user2Name: 'User 2' });
   const [formData, setFormData] = useState({
     type: transactionType,
     description: '',
@@ -38,10 +38,22 @@ export default function TransactionForm({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Load settings on component mount
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userSettings = await supabaseUtils.getSettings();
+        setSettings(userSettings);
+        setFormData(prev => ({ ...prev, paidBy: userSettings.user1Name }));
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    // Description is now optional - no validation needed
     
     if (!formData.amount || Number(formData.amount) <= 0) {
       newErrors.amount = 'Amount must be greater than 0';
@@ -70,8 +82,7 @@ export default function TransactionForm({
 
     setLoading(true);
     try {
-      const transaction: Transaction = {
-        id: crypto.randomUUID(),
+      await supabaseUtils.addTransaction({
         companyId: company.id,
         companyName: company.name,
         type: formData.type as 'purchase' | 'payment',
@@ -79,15 +90,14 @@ export default function TransactionForm({
         amount: Number(formData.amount),
         date: formData.date,
         paymentMethod: formData.paymentMethod,
-        paidBy: formData.paidBy,
-        createdAt: new Date().toISOString()
-      };
+        paidBy: formData.paidBy
+      });
 
-      storageUtils.addTransaction(transaction);
       onTransactionAdded();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding transaction:', error);
+      setErrors({ general: 'Failed to add transaction. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -111,9 +121,9 @@ export default function TransactionForm({
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${formData.type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'}`}>
+            <div className={`p-2 rounded-lg ${formData.type === 'purchase' ? 'bg-orange-100' : 'bg-green-100'}`}>
               {formData.type === 'purchase' ? (
-                <Receipt className={`w-5 h-5 ${formData.type === 'purchase' ? 'text-blue-600' : 'text-green-600'}`} />
+                <Receipt className={`w-5 h-5 ${formData.type === 'purchase' ? 'text-orange-600' : 'text-green-600'}`} />
               ) : (
                 <CreditCard className="w-5 h-5 text-green-600" />
               )}
@@ -134,6 +144,12 @@ export default function TransactionForm({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {errors.general && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{errors.general}</p>
+            </div>
+          )}
+
           {/* Transaction Type Toggle */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -145,7 +161,7 @@ export default function TransactionForm({
                 onClick={() => handleTypeChange('purchase')}
                 className={`p-3 rounded-lg border-2 transition-colors ${
                   formData.type === 'purchase'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    ? 'border-orange-500 bg-orange-50 text-orange-700'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -174,7 +190,7 @@ export default function TransactionForm({
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-gray-600">Total Bought</p>
-                <p className="font-medium text-blue-600">{formatCurrency(company.totalBought)}</p>
+                <p className="font-medium text-orange-600">{formatCurrency(company.totalBought)}</p>
               </div>
               <div>
                 <p className="text-gray-600">Total Paid</p>
@@ -198,7 +214,7 @@ export default function TransactionForm({
               name="description"
               value={formData.description}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.description ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder={formData.type === 'purchase' ? 'What did you buy? (optional)' : 'Payment for what? (optional)'}
@@ -220,7 +236,7 @@ export default function TransactionForm({
               onChange={handleChange}
               min="0.01"
               step="0.01"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.amount ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="₹0.00"
@@ -237,7 +253,7 @@ export default function TransactionForm({
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.date ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -255,7 +271,7 @@ export default function TransactionForm({
               name="paidBy"
               value={formData.paidBy}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                 errors.paidBy ? 'border-red-500' : 'border-gray-300'
               }`}
             >
@@ -273,7 +289,7 @@ export default function TransactionForm({
               name="paymentMethod"
               value={formData.paymentMethod}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             >
               {paymentMethods.map(method => (
                 <option key={method.value} value={method.value}>
@@ -296,7 +312,7 @@ export default function TransactionForm({
               disabled={loading}
               className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 formData.type === 'purchase' 
-                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  ? 'bg-orange-600 hover:bg-orange-700' 
                   : 'bg-green-600 hover:bg-green-700'
               }`}
             >
