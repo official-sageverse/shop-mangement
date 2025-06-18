@@ -1,76 +1,129 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
-  CreditCard, 
+  Receipt, 
   Menu, 
   X,
-  IndianRupee
+  BookOpen,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
-import PaymentForm from './components/PaymentForm';
-import PaymentsTable from './components/PaymentsTable';
-import { Payment } from './types';
+import CompanyDetails from './components/CompanyDetails';
+import CompanyForm from './components/CompanyForm';
+import TransactionForm from './components/TransactionForm';
+import Settings from './components/Settings';
+import { Company, Transaction } from './types';
 import { storageUtils } from './utils/storage';
 
-type ActiveTab = 'dashboard' | 'payments';
+type ActiveView = 'dashboard' | 'company-details';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<string | undefined>();
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [showCompanyForm, setShowCompanyForm] = useState(false);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [transactionType, setTransactionType] = useState<'purchase' | 'payment'>('purchase');
+  const [editingCompany, setEditingCompany] = useState<Company | undefined>();
 
   useEffect(() => {
-    setPayments(storageUtils.getPayments());
-    document.title = 'PayTracker - Company Payment Management';
+    refreshData();
+    document.title = 'KhataBook - Business Account Management';
   }, []);
 
   const refreshData = () => {
-    setPayments(storageUtils.getPayments());
+    setCompanies(storageUtils.getCompanies());
+    setTransactions(storageUtils.getTransactions());
   };
 
-  const existingCompanies = Array.from(new Set(payments.map(p => p.company))).sort();
-
-  const handleCompanySelect = (company: string) => {
+  const handleCompanySelect = (company: Company) => {
     setSelectedCompany(company);
-    setActiveTab('payments');
+    setActiveView('company-details');
   };
 
   const handleBackToDashboard = () => {
-    setSelectedCompany(undefined);
-    setActiveTab('dashboard');
+    setSelectedCompany(null);
+    setActiveView('dashboard');
   };
 
-  const handleAddPayment = (company?: string) => {
-    setSelectedCompany(company);
-    setShowPaymentForm(true);
+  const handleAddCompany = () => {
+    setEditingCompany(undefined);
+    setShowCompanyForm(true);
   };
 
-  const handlePaymentAdded = () => {
+  const handleEditCompany = () => {
+    if (selectedCompany) {
+      setEditingCompany(selectedCompany);
+      setShowCompanyForm(true);
+    }
+  };
+
+  const handleAddTransaction = (type: 'purchase' | 'payment') => {
+    setTransactionType(type);
+    setShowTransactionForm(true);
+  };
+
+  const handleCompanyAdded = () => {
     refreshData();
-    setShowPaymentForm(false);
+    setShowCompanyForm(false);
+    // If we were editing, refresh the selected company
+    if (editingCompany && selectedCompany) {
+      const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+      if (updatedCompany) {
+        setSelectedCompany(updatedCompany);
+      }
+    }
   };
 
-  const tabs = [
-    { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'payments' as const, label: 'All Payments', icon: CreditCard }
-  ];
+  const handleTransactionAdded = () => {
+    refreshData();
+    setShowTransactionForm(false);
+    // Refresh selected company data
+    if (selectedCompany) {
+      const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+      if (updatedCompany) {
+        setSelectedCompany(updatedCompany);
+      }
+    }
+  };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  const handleSettingsUpdated = () => {
+    refreshData();
+  };
+
+  const renderContent = () => {
+    switch (activeView) {
       case 'dashboard':
-        return <Dashboard payments={payments} onCompanySelect={handleCompanySelect} />;
-      case 'payments':
         return (
-          <PaymentsTable 
-            payments={payments} 
-            onPaymentsChange={refreshData}
-            selectedCompany={selectedCompany}
-            onBackToDashboard={handleBackToDashboard}
-            onAddPayment={handleAddPayment}
+          <Dashboard 
+            companies={companies} 
+            transactions={transactions}
+            onCompanySelect={handleCompanySelect}
+            onAddCompany={handleAddCompany}
           />
         );
+      case 'company-details':
+        return selectedCompany ? (
+          <CompanyDetails 
+            company={selectedCompany}
+            transactions={transactions}
+            onBack={handleBackToDashboard}
+            onAddTransaction={handleAddTransaction}
+            onEditCompany={handleEditCompany}
+            onRefresh={() => {
+              refreshData();
+              const updatedCompany = storageUtils.getCompanies().find(c => c.id === selectedCompany.id);
+              if (updatedCompany) {
+                setSelectedCompany(updatedCompany);
+              } else {
+                handleBackToDashboard();
+              }
+            }}
+          />
+        ) : null;
       default:
         return null;
     }
@@ -83,49 +136,45 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-600 rounded-lg">
-                <IndianRupee className="w-6 h-6 text-white" />
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <BookOpen className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">PayTracker</h1>
-                <p className="text-xs text-gray-600">Company Payment Management</p>
+                <h1 className="text-xl font-bold text-gray-900">KhataBook</h1>
+                <p className="text-xs text-gray-600">Business Account Management</p>
               </div>
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (tab.id === 'dashboard') {
-                        setSelectedCompany(undefined);
-                      }
-                    }}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
+              <button
+                onClick={handleBackToDashboard}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeView === 'dashboard'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </button>
             </nav>
 
-            {/* Add Payment Button */}
-            <div className="hidden md:block">
+            {/* Desktop Action Buttons */}
+            <div className="hidden md:flex items-center gap-2">
               <button
-                onClick={() => handleAddPayment()}
-                className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+                onClick={() => setShowSettings(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
               >
-                <CreditCard className="w-4 h-4" />
-                Add Payment
+                <SettingsIcon className="w-4 h-4" />
+                Settings
+              </button>
+              <button
+                onClick={handleAddCompany}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+              >
+                <Receipt className="w-4 h-4" />
+                Add Company
               </button>
             </div>
 
@@ -142,38 +191,39 @@ function App() {
           {isMobileMenuOpen && (
             <div className="md:hidden border-t border-gray-200 py-4">
               <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        if (tab.id === 'dashboard') {
-                          setSelectedCompany(undefined);
-                        }
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
                 <button
                   onClick={() => {
-                    handleAddPayment();
+                    handleBackToDashboard();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    activeView === 'dashboard'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
                 >
-                  <CreditCard className="w-5 h-5" />
-                  Add Payment
+                  <LayoutDashboard className="w-5 h-5" />
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSettings(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+                >
+                  <SettingsIcon className="w-5 h-5" />
+                  Settings
+                </button>
+                <button
+                  onClick={() => {
+                    handleAddCompany();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  <Receipt className="w-5 h-5" />
+                  Add Company
                 </button>
               </nav>
             </div>
@@ -183,15 +233,33 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderTabContent()}
+        {renderContent()}
       </main>
 
-      {/* Payment Form Modal */}
-      {showPaymentForm && (
-        <PaymentForm
-          onPaymentAdded={handlePaymentAdded}
-          existingCompanies={existingCompanies}
-          selectedCompany={selectedCompany}
+      {/* Company Form Modal */}
+      {showCompanyForm && (
+        <CompanyForm
+          onCompanyAdded={handleCompanyAdded}
+          onClose={() => setShowCompanyForm(false)}
+          company={editingCompany}
+        />
+      )}
+
+      {/* Transaction Form Modal */}
+      {showTransactionForm && selectedCompany && (
+        <TransactionForm
+          onTransactionAdded={handleTransactionAdded}
+          onClose={() => setShowTransactionForm(false)}
+          company={selectedCompany}
+          transactionType={transactionType}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <Settings
+          onClose={() => setShowSettings(false)}
+          onSettingsUpdated={handleSettingsUpdated}
         />
       )}
     </div>
