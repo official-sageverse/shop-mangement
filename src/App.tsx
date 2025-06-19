@@ -55,16 +55,21 @@ function App() {
 
   const checkAuth = async () => {
     try {
-      const user = await supabaseUtils.getCurrentUser();
-      if (user) {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      if (session?.user) {
         setIsAuthenticated(true);
         await refreshData();
+      } else {
+        setIsAuthenticated(false);
       }
     } catch (error) {
       // Only log errors that are not the expected "Auth session missing!" message
       if (error instanceof Error && error.message !== 'Auth session missing!') {
         console.error('Auth check failed:', error);
       }
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }

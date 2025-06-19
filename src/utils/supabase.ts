@@ -51,9 +51,14 @@ export const supabaseUtils = {
   },
 
   async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
-    return user;
+    
+    if (!session?.user) {
+      throw new Error('Auth session missing!');
+    }
+    
+    return session.user;
   },
 
   // Settings
