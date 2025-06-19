@@ -61,7 +61,10 @@ function App() {
         await refreshData();
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      // Only log errors that are not the expected "Auth session missing!" message
+      if (error instanceof Error && error.message !== 'Auth session missing!') {
+        console.error('Auth check failed:', error);
+      }
     } finally {
       setLoading(false);
     }
