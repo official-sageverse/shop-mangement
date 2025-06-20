@@ -86,7 +86,7 @@ export const supabaseUtils = {
     }
 
     if (!data) {
-      // Create default settings
+      // Create default settings using upsert with onConflict
       const defaultSettings = {
         user_id: user.id,
         user1_name: 'User 1',
@@ -95,7 +95,7 @@ export const supabaseUtils = {
 
       const { data: newData, error: insertError } = await supabase
         .from('user_settings')
-        .insert(defaultSettings)
+        .upsert(defaultSettings, { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -122,7 +122,7 @@ export const supabaseUtils = {
         user_id: user.id,
         user1_name: settings.user1Name,
         user2_name: settings.user2Name
-      });
+      }, { onConflict: 'user_id' });
 
     if (error) throw error;
   },
